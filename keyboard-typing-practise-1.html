@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Trek - Home Row Caves</title>
+    <style>
+        /* CSS for the game's appearance */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background-color: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        .level-info {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            color: #555;
+        }
+
+        #text-to-type {
+            font-family: 'Courier New', monospace; /* Monospace font for letter spacing */
+            font-size: 2.5em;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            min-height: 80px;
+            background-color: #e9ecef;
+            text-align: left;
+            user-select: none; /* Prevent text selection */
+            
+            /* --- FIX for Word Wrap --- */
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* ------------------------- */
+        }
+
+        /* Styling for the letters based on game state */
+        .typed-correct {
+            color: #28a745; /* Green for correctly typed letters */
+        }
+
+        .typed-incorrect {
+            color: #dc3545; /* Red for incorrect letters */
+            background-color: #f8d7da; /* Light red background to emphasize error */
+        }
+
+        .current-letter {
+            background-color: #ffc107; /* Yellow highlight for the next letter */
+            padding: 2px 0;
+            border-radius: 4px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            font-size: 1.1em;
+            color: #007bff;
+        }
+
+        .tip {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin-top: 30px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>⭐ Typing Trek: Level 1 - Home Row Caves</h1>
+        <div class="level-info">
+            **Goal:** Master the **Home Row** keys (ASDF JKL;). **Remember to use the spacebar!**
+        </div>
+
+        <div id="text-to-type">
+            </div>
+
+        <div class="stats">
+            <div>Accuracy: <span id="accuracy">--%</span></div>
+            <div>Time: <span id="time">00:00</span></div>
+        </div>
+        
+        <div class="tip">
+            **Tip:** Keep your fingers resting lightly on the **Home Row**! **A S D F** for your left hand, **J K L ;** for your right.
+        </div>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT GAME LOGIC ---
+
+        // Added more text to better test the word wrap fix
+        const targetText = "asdf jkl; a lad as a lass fall adds ask dad sad flask; a fall dad lass adds; a fall dad lass adds; a fall dad lass adds; a fall dad lass adds; a fall dad lass adds.";
+        const textDisplay = document.getElementById('text-to-type');
+        let currentCharacterIndex = 0;
+        let errors = 0;
+        let isGameRunning = false;
+        let startTime;
+        let timerInterval;
+
+        // 1. Initialize the display: Wrap each character in a span
+        function initializeGame() {
+            const characters = targetText.split('');
+            textDisplay.innerHTML = characters.map((char, index) => {
+                let spanClass = '';
+                if (index === 0) {
+                    spanClass = 'current-letter';
+                }
+                return `<span id="char-${index}" class="${spanClass}">${char === ' ' ? '&nbsp;' : char}</span>`;
+            }).join('');
+            
+            currentCharacterIndex = 0;
+            errors = 0;
+            document.getElementById('accuracy').textContent = '--%';
+            document.getElementById('time').textContent = '00:00';
+            isGameRunning = false;
+        }
+
+        // 2. Start the timer
+        function startTimer() {
+            if (isGameRunning) return;
+            isGameRunning = true;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTime, 1000);
+        }
+
+        // 3. Update the timer display
+        function updateTime() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+            const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+            document.getElementById('time').textContent = `${minutes}:${seconds}`;
+        }
+
+        // 4. Update accuracy
+        function updateAccuracy() {
+            const totalTyped = currentCharacterIndex;
+            const correct = totalTyped - errors;
+            const accuracy = totalTyped > 0 ? Math.round((correct / totalTyped) * 100) : 0;
+            document.getElementById('accuracy').textContent = `${accuracy}%`;
+        }
+
+        // 5. Handle key press event
+        document.addEventListener('keydown', (event) => {
+            // Only process single character keys
+            if (event.key.length !== 1 && event.key !== ' ') {
+                return;
+            }
+
+            // Start the game on the first correct keypress
+            if (!isGameRunning) {
+                startTimer();
+            }
+
+            const targetCharElement = document.getElementById(`char-${currentCharacterIndex}`);
+            const targetChar = targetText[currentCharacterIndex];
+            const pressedKey = event.key;
+
+            if (!targetCharElement) {
+                // Game Over - all text typed
+                clearInterval(timerInterval);
+                updateAccuracy(); // Final accuracy score
+                alert(`Level Complete! Final Accuracy: ${document.getElementById('accuracy').textContent}. Press OK to restart.`);
+                initializeGame(); // Restart for next round
+                return;
+            }
+
+            if (pressedKey === targetChar) {
+                // Correct key pressed
+                targetCharElement.classList.remove('current-letter', 'typed-incorrect');
+                targetCharElement.classList.add('typed-correct');
+                currentCharacterIndex++;
+
+                // Set the highlight on the next character
+                const nextCharElement = document.getElementById(`char-${currentCharacterIndex}`);
+                if (nextCharElement) {
+                    // Remove highlight from old character (if it had an error)
+                    targetCharElement.classList.remove('current-letter'); 
+                    nextCharElement.classList.add('current-letter');
+                }
+            } else {
+                // Incorrect key pressed
+                targetCharElement.classList.add('typed-incorrect');
+                errors++;
+            }
+            
+            updateAccuracy();
+        });
+
+        // Initialize the game when the page loads
+        initializeGame();
+
+    </script>
+
+</body>
+</html>
